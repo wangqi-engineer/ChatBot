@@ -449,7 +449,7 @@
     </div>
 
     <div class="footer">
-        <p>© 2025 智能问答机器人 | 基于Flask后端API</p>
+        <p>© 2023 智能问答机器人 | Qwen1.5-0.5B-Chat</p>
     </div>
 
     <script>
@@ -675,7 +675,7 @@
         // 发送消息到后端
         async function sendMessageToAPI(message, conversationId) {
             try {
-                const response = await fetch('/chatbot/reply/', {
+                const response = await fetch('/chatbot/reply', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -701,7 +701,7 @@
         // 清除历史记录
         async function clearHistoryAPI(conversationId) {
             try {
-                const response = await fetch('/chatbot/clear_history/', {
+                const response = await fetch('/chatbot/clear_history', {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
