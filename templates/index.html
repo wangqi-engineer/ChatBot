@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能问答机器人</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --secondary-color: #a29bfe;
+            --accent-color: #00cec9;
+            --dark-bg: #1e1e2e;
+            --darker-bg: #12121a;
+            --light-text: #f8f8f8;
+            --medium-text: #b8b8b8;
+            --bot-bubble: #2d2d44;
+            --user-bubble: var(--primary-color);
+            --shadow-glow: 0 0 15px rgba(108, 92, 231, 0.5);
+            --success-color: #00b894;
+            --error-color: #ff7675;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
+            color: var(--light-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(30, 30, 46, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(108, 92, 231, 0.3);
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, var(--accent-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--medium-text);
+            font-size: 1.1rem;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: rgba(30, 30, 46, 0.7);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-glow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(108, 92, 231, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(30, 30, 46, 0.7);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--shadow-glow);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(108, 92, 231, 0.2);
+        }
+
+        .chat-header {
+            padding: 1.2rem;
+            background: rgba(30, 30, 46, 0.9);
+            border-bottom: 1px solid rgba(108, 92, 231, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .chat-title i {
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem 1.2rem;
+            border-radius: 18px;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+            line-height: 1.5;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: var(--user-bubble);
+            border-bottom-right-radius: 5px;
+            box-shadow: 0 4px 8px rgba(108, 92, 231, 0.3);
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: var(--medium-text);
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            padding: 1rem 1.2rem;
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            margin-bottom: 0.5rem;
+            max-width: 80px;
+        }
+
+        .typing-dot {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            background: var(--medium-text);
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .chat-input-container {
+            padding: 1.2rem;
+            background: rgba(30, 30, 46, 0.9);
+            border-top: 1px solid rgba(108, 92, 231, 0.3);
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: none;
+            border-radius: 25px;
+            background: rgba(45, 45, 68, 0.8);
+            color: var(--light-text);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            box-shadow: 0 0 0 2px var(--accent-color);
+        }
+
+        .send-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+        }
+
+        .send-button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .clear-button {
+            background: transparent;
+            color: var(--medium-text);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .clear-button:hover {
+            background: rgba(255, 77, 77, 0.1);
+            color: #ff4d4d;
+            border-color: rgba(255, 77, 77, 0.3);
+        }
+
+        .conversation-list {
+            margin-top: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .conversation-item:hover {
+            background: rgba(108, 92, 231, 0.1);
+        }
+
+        .conversation-item.active {
+            background: rgba(108, 92, 231, 0.2);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .conversation-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .conversation-info {
+            flex: 1;
+        }
+
+        .conversation-title {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .conversation-preview {
+            font-size: 0.8rem;
+            color: var(--medium-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .new-chat-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: auto;
+            font-weight: 600;
+        }
+
+        .new-chat-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(108, 92, 231, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--medium-text);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(108, 92, 231, 0.2);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--error-color);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .chat-container {
+                order: 1;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 30, 46, 0.5);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能问答机器人</h1>
+        <p>基于AI技术的智能对话助手</p>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <button class="new-chat-btn" id="newChatBtn">
+                <i class="fas fa-plus"></i> 新建对话
+            </button>
+            <div class="conversation-list" id="conversationList">
+                <!-- 对话列表将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <i class="fas fa-robot"></i>
+                    <h2 id="currentConversationTitle">AI助手</h2>
+                </div>
+                <button class="clear-button" id="clearHistoryBtn">
+                    <i class="fas fa-trash-alt"></i> 清除历史
+                </button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div>您好！我是智能问答机器人，有什么可以帮助您的吗？</div>
+                    <div class="message-time" id="currentTime"></div>
+                </div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="userInput" placeholder="输入您的问题...">
+                <button class="send-button" id="sendButton">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 智能问答机器人 | 基于Flask后端API</p>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentConversationId = null;
+        let conversations = [];
+
+        // DOM元素
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const conversationList = document.getElementById('conversationList');
+        const currentConversationTitle = document.getElementById('currentConversationTitle');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置当前时间
+            document.getElementById('currentTime').textContent = getCurrentTime();
+
+            // 初始化对话
+            initializeConversations();
+
+            // 事件监听
+            sendButton.addEventListener('click', handleSendMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleSendMessage();
+                }
+            });
+            clearHistoryBtn.addEventListener('click', clearChatHistory);
+            newChatBtn.addEventListener('click', createNewConversation);
+
+            // 初始化滚动到底部
+            scrollToBottom();
+        });
+
+        // 生成当前时间字符串
+        function getCurrentTime() {
+            const now = new Date();
+            return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // 初始化对话列表
+        function initializeConversations() {
+            // 如果没有对话，创建一个默认对话
+            if (conversations.length === 0) {
+                createNewConversation();
+            } else {
+                renderConversationList();
+            }
+        }
+
+        // 创建新对话
+        function createNewConversation() {
+            const conversationId = 'conv_' + Date.now();
+            const newConversation = {
+                id: conversationId,
+                title: '新对话',
+                preview: '暂无消息',
+                messages: [
+                    {
+                        type: 'bot',
+                        content: '您好！我是智能问答机器人，有什么可以帮助您的吗？',
+                        time: getCurrentTime()
+                    }
+                ]
+            };
+
+            conversations.push(newConversation);
+            currentConversationId = conversationId;
+
+            renderConversationList();
+            renderChatMessages();
+
+            // 显示通知
+            showNotification('新对话已创建', 'success');
+        }
+
+        // 渲染对话列表
+        function renderConversationList() {
+            conversationList.innerHTML = '';
+
+            conversations.forEach(conversation => {
+                const conversationItem = document.createElement('div');
+                conversationItem.className = `conversation-item ${conversation.id === currentConversationId ? 'active' : ''}`;
+                conversationItem.innerHTML = `
+                    <div class="conversation-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="conversation-info">
+                        <div class="conversation-title">${conversation.title}</div>
+                        <div class="conversation-preview">${conversation.preview}</div>
+                    </div>
+                `;
+
+                conversationItem.addEventListener('click', () => {
+                    switchConversation(conversation.id);
+                });
+
+                conversationList.appendChild(conversationItem);
+            });
+        }
+
+        // 切换对话
+        function switchConversation(conversationId) {
+            currentConversationId = conversationId;
+            renderConversationList();
+            renderChatMessages();
+        }
+
+        // 渲染聊天消息
+        function renderChatMessages() {
+            const currentConversation = getCurrentConversation();
+            if (!currentConversation) return;
+
+            chatMessages.innerHTML = '';
+
+            currentConversation.messages.forEach(message => {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${message.type}-message`;
+                messageElement.innerHTML = `
+                    <div>${message.content}</div>
+                    <div class="message-time">${message.time}</div>
+                `;
+                chatMessages.appendChild(messageElement);
+            });
+
+            scrollToBottom();
+
+            // 更新对话标题
+            updateConversationTitle();
+        }
+
+        // 获取当前对话
+        function getCurrentConversation() {
+            return conversations.find(conv => conv.id === currentConversationId);
+        }
+
+        // 更新对话标题
+        function updateConversationTitle() {
+            const currentConversation = getCurrentConversation();
+            if (!currentConversation) return;
+
+            // 如果有用户消息，使用第一条用户消息作为标题
+            const userMessage = currentConversation.messages.find(msg => msg.type === 'user');
+            if (userMessage) {
+                const title = userMessage.content.length > 20
+                    ? userMessage.content.substring(0, 20) + '...'
+                    : userMessage.content;
+                currentConversation.title = title;
+                currentConversationTitle.textContent = title;
+            } else {
+                currentConversationTitle.textContent = 'AI助手';
+            }
+
+            renderConversationList();
+        }
+
+        // 添加用户消息
+        function addUserMessage(message) {
+            const currentConversation = getCurrentConversation();
+            if (!currentConversation) return;
+
+            const messageObj = {
+                type: 'user',
+                content: message,
+                time: getCurrentTime()
+            };
+
+            currentConversation.messages.push(messageObj);
+            currentConversation.preview = message.length > 30
+                ? message.substring(0, 30) + '...'
+                : message;
+
+            renderChatMessages();
+            renderConversationList();
+        }
+
+        // 添加机器人消息
+        function addBotMessage(message) {
+            const currentConversation = getCurrentConversation();
+            if (!currentConversation) return;
+
+            const messageObj = {
+                type: 'bot',
+                content: message,
+                time: getCurrentTime()
+            };
+
+            currentConversation.messages.push(messageObj);
+            renderChatMessages();
+        }
+
+        // 显示打字机效果
+        function showTypingIndicator() {
+            const typingElement = document.createElement('div');
+            typingElement.className = 'typing-indicator';
+            typingElement.id = 'typingIndicator';
+            typingElement.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            chatMessages.appendChild(typingElement);
+            scrollToBottom();
+        }
+
+        // 隐藏打字机效果
+        function hideTypingIndicator() {
+            const typingElement = document.getElementById('typingIndicator');
+            if (typingElement) {
+                typingElement.remove();
+            }
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 发送消息到后端
+        async function sendMessageToAPI(message, conversationId) {
+            try {
+                const response = await fetch('/chatbot/reply/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation_id: conversationId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.reply;
+            } catch (error) {
+                console.error('发送消息时出错:', error);
+                throw error;
+            }
+        }
+
+        // 清除历史记录
+        async function clearHistoryAPI(conversationId) {
+            try {
+                const response = await fetch('/chatbot/clear_history/', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        conversation_id: conversationId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return true;
+            } catch (error) {
+                console.error('清除历史记录时出错:', error);
+                throw error;
+            }
+        }
+
+        // 处理发送消息
+        async function handleSendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 如果没有对话，创建一个
+            if (!currentConversationId) {
+                createNewConversation();
+            }
+
+            // 添加用户消息到聊天界面
+            addUserMessage(message);
+            userInput.value = '';
+
+            // 显示打字机效果
+            showTypingIndicator();
+
+            try {
+                // 发送消息到后端并获取回复
+                const reply = await sendMessageToAPI(message, currentConversationId);
+
+                // 隐藏打字机效果
+                hideTypingIndicator();
+
+                // 添加机器人回复到聊天界面
+                addBotMessage(reply);
+            } catch (error) {
+                // 隐藏打字机效果
+                hideTypingIndicator();
+
+                // 显示错误消息
+                addBotMessage("抱歉，我暂时无法回答您的问题，请稍后再试。");
+                showNotification('发送消息失败，请检查网络连接', 'error');
+            }
+        }
+
+        // 清除历史记录
+        async function clearChatHistory() {
+            if (!currentConversationId) {
+                showNotification('没有可清除的对话', 'error');
+                return;
+            }
+
+            try {
+                // 调用清除历史记录的API
+                await clearHistoryAPI(currentConversationId);
+
+                // 清除本地存储的消息
+                const currentConversation = getCurrentConversation();
+                if (currentConversation) {
+                    currentConversation.messages = [
+                        {
+                            type: 'bot',
+                            content: '历史记录已清除！有什么可以帮助您的吗？',
+                            time: getCurrentTime()
+                        }
+                    ];
+                    currentConversation.preview = '暂无消息';
+                }
+
+                // 重新渲染界面
+                renderChatMessages();
+                renderConversationList();
+
+                showNotification('历史记录已清除', 'success');
+            } catch (error) {
+                showNotification('清除历史记录失败', 'error');
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            // 3秒后自动移除通知
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
