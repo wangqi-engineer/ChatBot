@@ -1,6 +1,8 @@
 """ Flask实现类 """
+import argparse
 import json
 import logging
+import os
 
 from flask import Flask, request, render_template, jsonify
 
@@ -12,8 +14,12 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 try:
-    logger.info('开始加载对话模型...')
-    chat_bot = ChatBot()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-model_name', type=str, default=r'Qwen1.5-7B-Chat')
+    args = parser.parse_args()
+    logger.info(f'开始加载对话模型：{os.path.basename(args.model_name)}...')
+    chat_bot = ChatBot(model_name=args.model_name)
+    logger.info(f'对话模型加载到设备：{chat_bot.device}')
     logger.info('模型加载成功！')
 except Exception as e:
     logger.error(f'加载模型失败：{e}')
