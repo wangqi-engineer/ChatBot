@@ -3,7 +3,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class ChatBot:
-    def __init__(self, model_name='Qwen/Qwen1.5-0.5B-Chat', max_conv_num=6):
+    def __init__(self, model_name='Qwen/Qwen1.5-7B-Chat', max_conv_num=6):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -28,7 +28,7 @@ class ChatBot:
         )
 
         # 词编码获取模型输入信息
-        model_inputs = self.tokenizer([text], return_tensors='pt')
+        model_inputs = self.tokenizer([text], return_tensors='pt').to(self.device)
 
         # 获取模型输出，对于文本生成类需要使用.generate方法
         generate_ids = self.model.generate(
